@@ -47,7 +47,7 @@ def arg_parser() -> argparse.Namespace:
 
 
 def data_processing(start_date: datetime.date, end_date: datetime.date,
-                    spend_data: List[Dict[str, Any]], conv_data: List[Dict[str, Any]],) -> List[Dict[str, Any]]:
+                    spend_data: List[Dict[str, Any]], conv_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Combine spend and conversion data, calculate CPA."""
 
     spend_index = {(row["date"], row["campaign_id"]): row["spend"] for row in spend_data}
@@ -79,17 +79,30 @@ def data_processing(start_date: datetime.date, end_date: datetime.date,
     return results
 
 
-def request_api() -> List[Dict[str, Any]]:
+def request_api() -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Request data from API."""
     # TODO: implement actual API call
-    return []
+    spend_data = [{"date": "2025-06-01", "campaign_id": "TEST", "spend": 100},
+                  {"date": "2025-01-02", "campaign_id": "TEST-2", "spend": 30}]
+    conv_data = [{"date": "2025-06-06", "campaign_id": "TEST", "conversions":  7},
+                 {"date": "2025-01-02", "campaign_id": "TEST-2", "conversions": 14}]
+    return spend_data, conv_data
 
 
 def update_data(repo: Repository):
     try:
-        result = request_api()
-        if result:
-            repo.upsert_stats(result)
+        spend_data, conv_data = request_api()
+
+        all_dates = [parse_date(d["date"]) for d in spend_data] + [parse_date(d["date"]) for d in conv_data]
+        if not all_dates:
+            logging.info("No data returned from API")
+            return
+        start_date = min(all_dates)
+        end_date = max(all_dates)
+
+        processed_result = data_processing(start_date, end_date, spend_data, conv_data)
+        if processed_result:
+            repo.upsert_stats(processed_result)
         logging.info(f"Data updated at {datetime.now()}")
     except Exception as e:
         logging.error(f"Error updating data: {e}")
