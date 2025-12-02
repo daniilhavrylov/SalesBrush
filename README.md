@@ -9,8 +9,8 @@
 1. Клонируйте репозиторий:
 
 ```bash
-git clone <your-repo-url>
-cd <repo-folder>
+git clone https://github.com/daniilhavrylov/SalesBrush.git
+cd SalesBrush
 ````
 
 2. Создайте виртуальное окружение:
