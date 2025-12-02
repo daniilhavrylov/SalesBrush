@@ -85,18 +85,21 @@ def test_data_processing_no_conversions():
 # -------------------- update_data --------------------
 def test_update_data_success():
     mock_repo = Mock()
-    mock_result = [{"date": "2025-01-01", "campaign_id": "TEST", "spend": 100}]
+    mock_spend = [{"date": "2025-01-01", "campaign_id": "TEST", "spend": 100}]
+    mock_conv = [{"date": "2025-01-01", "campaign_id": "TEST", "conversions": 5}]
 
-    with patch("run.request_api", return_value=mock_result):
+    with patch("run.request_api", return_value=(mock_spend, mock_conv)):
         update_data(mock_repo)
 
-    mock_repo.upsert_stats.assert_called_once_with(mock_result)
+    mock_repo.upsert_stats.assert_called_once()
+    result = mock_repo.upsert_stats.call_args[0][0]
+    assert result[0]["cpa"] == 20  # 100 / 5
+
 
 
 def test_update_data_empty_result():
     mock_repo = Mock()
-
-    with patch("run.request_api", return_value=[]):
+    with patch("run.request_api", return_value=([], [])):
         update_data(mock_repo)
 
     mock_repo.upsert_stats.assert_not_called()
