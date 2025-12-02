@@ -24,6 +24,9 @@ def parse_date(date_str: str) -> datetime.date:
     return datetime.fromisoformat(date_str).date()
 
 def interval_calculation(max_requests_per_day: int = 100) -> float:
+    if max_requests_per_day <= 0:
+        raise ValueError("max_requests_per_day must be positive")
+
     requests_needed = max_requests_per_day * 0.8
 
     allowed_per_hour = requests_needed / 24
