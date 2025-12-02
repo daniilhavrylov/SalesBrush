@@ -2,18 +2,22 @@ import argparse
 import json
 import logging
 import os
+import time
 from datetime import datetime
 from typing import List, Dict, Any
 
 import psycopg2
 from dotenv import load_dotenv
 from apscheduler.schedulers.blocking import BlockingScheduler
+from requests import RequestException
 
 from services.repository import Repository
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 load_dotenv()
 
+MAX_RETRIES = 10
+BASE_DELAY = 2
 
 def load_json(path: str) -> List[Dict[str, Any]]:
     with open(path, "r", encoding="utf-8") as f:
@@ -79,14 +83,29 @@ def data_processing(start_date: datetime.date, end_date: datetime.date,
     return results
 
 
-def request_api() -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def request_api()  -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """Request data from API."""
-    # TODO: implement actual API call
-    spend_data = [{"date": "2025-06-01", "campaign_id": "TEST", "spend": 100},
-                  {"date": "2025-01-02", "campaign_id": "TEST-2", "spend": 30}]
-    conv_data = [{"date": "2025-06-06", "campaign_id": "TEST", "conversions":  7},
-                 {"date": "2025-01-02", "campaign_id": "TEST-2", "conversions": 14}]
-    return spend_data, conv_data
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            # TODO: implement actual API call
+            spend_data = [{"date": "2025-06-01", "campaign_id": "TEST", "spend": 100},
+                          {"date": "2025-01-02", "campaign_id": "TEST-2", "spend": 30}]
+            conv_data = [{"date": "2025-06-06", "campaign_id": "TEST", "conversions":  7},
+                         {"date": "2025-01-02", "campaign_id": "TEST-2", "conversions": 14}]
+            if spend_data and conv_data:
+                return spend_data, conv_data
+        except (RequestException, ConnectionError) as e:
+            logging.warning(f"Network error on attempt {attempt}/{MAX_RETRIES}: {e}")
+            if attempt < MAX_RETRIES:
+                delay = BASE_DELAY * attempt
+                logging.info(f"Retrying in {delay} seconds...")
+                time.sleep(delay)
+            else:
+                logging.error("Max retries reached. Failed to update data.")
+        except Exception as e:
+            logging.error(f"Unexpected error: {e}")
+            break
+    return [], []
 
 
 def update_data(repo: Repository):
