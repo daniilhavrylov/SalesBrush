@@ -118,11 +118,6 @@ python run.py --spend-file data/spend.json --conv-file data/conv.json --start-da
 
 ## ⚡ Зависимости
 
-* Python 3.10+
-* psycopg2
-* python-dotenv
-* apscheduler
-
 Установите их через `pip install -r requirements.txt`.
 
 ---
